@@ -1,4 +1,5 @@
 # CarsonBoot
+# why have a bootloader that can brick a device when you can have a better one? #
 
 CarsonBoot is an experimental x86_64 UEFI boot manager written in C and GNU Assembly.
 
