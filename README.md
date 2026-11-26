@@ -18,7 +18,7 @@ On Debian or Ubuntu:
 
 ```sh
 sudo apt update
-sudo apt install build-essential binutils gnu-efi
+sudo apt install build-essential binutils gnu-efi dpkg-dev
 ```
 
 ## Build
@@ -30,6 +30,22 @@ make
 The output EFI application is `build/BOOTX64.EFI`.
 
 The Makefile uses the standard Debian/Ubuntu GNU-EFI paths. Override `EFI_INCLUDE`, `EFI_LIB`, `EFI_CRT`, and `EFI_LDS` if GNU-EFI is installed elsewhere.
+
+## Build a Debian package
+
+After building the EFI application:
+
+```sh
+bash packaging/build-deb.sh
+```
+
+The package is written to `build/deb/carsonboot_0.1.0_amd64.deb`. It installs the EFI executable to `/usr/lib/carsonboot/BOOTX64.EFI`.
+
+**The .deb does not write to an EFI System Partition, create firmware boot entries, or change the machine's boot configuration.** It only places the file on the Linux filesystem. This is intentional while CarsonBoot is experimental.
+
+## GitHub Actions
+
+Every push or pull request targeting `main`, version tag matching `v*`, or manual workflow dispatch runs the UEFI build and Debian packaging steps. The workflow uploads both `BOOTX64.EFI` and the `.deb` as downloadable build artifacts.
 
 ## Test in VirtualBox
 
