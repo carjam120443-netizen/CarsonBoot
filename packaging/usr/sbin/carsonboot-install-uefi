@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage:
+  sudo carsonboot-install-uefi --esp-mount PATH --disk DEVICE --part NUMBER [--apply]
+
+Without --apply, this script only validates and prints the planned changes.
+With --apply, it copies CarsonBoot to the EFI System Partition, creates a
+UEFI NVRAM boot entry, and places that entry first in BootOrder.
+
+Example:
+  sudo carsonboot-install-uefi --esp-mount /boot/efi --disk /dev/sda --part 1
+  sudo carsonboot-install-uefi --esp-mount /boot/efi --disk /dev/sda --part 1 --apply
+
+This does not repartition or format disks. Keep another working boot option
+available. Firmware implementations vary; test in a virtual machine first.
+EOF
+}
+
+ESP_MOUNT=""
+DISK=""
+PART=""
+APPLY=0
+
+while (($#)); do
+    case "$1" in
+        --esp-mount) [[ $# -ge 2 ]] || { usage >&2; exit 2; }; ESP_MOUNT="$2"; shift 2 ;;
+        --disk)      [[ $# -ge 2 ]] || { usage >&2; exit 2; }; DISK="$2"; shift 2 ;;
+        --part)      [[ $# -ge 2 ]] || { usage >&2; exit 2; }; PART="$2"; shift 2 ;;
+        --apply)     APPLY=1; shift ;;
+        -h|--help)   usage; exit 0 ;;
+        *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+[[ -n "$ESP_MOUNT" && -n "$DISK" && -n "$PART" ]] || { usage >&2; exit 2; }
+[[ "$PART" =~ ^[0-9]+$ ]] || { echo "--part must be a partition number." >&2; exit 2; }
+[[ -d "$ESP_MOUNT" ]] || { echo "ESP mount directory does not exist: $ESP_MOUNT" >&2; exit 1; }
+[[ -b "$DISK" ]] || { echo "Disk is not a block device: $DISK" >&2; exit 1; }
+mountpoint -q "$ESP_MOUNT" || { echo "The ESP path is not a mount point." >&2; exit 1; }
+
+FS_TYPE="$(findmnt -n -o FSTYPE --target "$ESP_MOUNT")"
+[[ "$FS_TYPE" == "vfat" || "$FS_TYPE" == "fat" || "$FS_TYPE" == "msdos" ]] || {
+    echo "Expected a FAT EFI System Partition; found: $FS_TYPE" >&2
+    exit 1
+}
+
+command -v efibootmgr >/dev/null || { echo "Install efibootmgr first." >&2; exit 1; }
+SOURCE_FILE="/usr/lib/carsonboot/BOOTX64.EFI"
+[[ -s "$SOURCE_FILE" ]] || { echo "CarsonBoot EFI executable not found: $SOURCE_FILE" >&2; exit 1; }
+[[ -d /sys/firmware/efi ]] || { echo "This Linux session was not booted in UEFI mode." >&2; exit 1; }
+(( EUID == 0 )) || { echo "Run with sudo." >&2; exit 1; }
+
+EFI_DIR="$ESP_MOUNT/EFI/CarsonBoot"
+TARGET="$EFI_DIR/BOOTX64.EFI"
+LOADER='\\EFI\\CarsonBoot\\BOOTX64.EFI'
+CURRENT="$(efibootmgr)"
+OLD_ORDER="$(awk '/^BootOrder:/ {print $2; exit}' <<<"$CURRENT")"
+
+if [[ -e "$TARGET" ]]; then
+    echo "An existing CarsonBoot file will be backed up before replacement:"
+    echo "  $TARGET"
+fi
+
+echo "Planned operation:"
+echo "  Copy: $SOURCE_FILE"
+echo "    to: $TARGET"
+echo "  Create UEFI entry: CarsonBoot"
+echo "  Disk/partition: $DISK / $PART"
+echo "  Loader path: $LOADER"
+echo "  Previous BootOrder: ${OLD_ORDER:-unavailable}"
+if (( ! APPLY )); then
+    echo
+    echo "Dry run only. No files or firmware settings were changed."
+    echo "Repeat with --apply to perform these changes."
+    exit 0
+fi
+
+mkdir -p "$EFI_DIR"
+if [[ -e "$TARGET" ]]; then
+    BACKUP="$TARGET.backup.$(date +%Y%m%d-%H%M%S)"
+    cp -p "$TARGET" "$BACKUP"
+    echo "Previous executable backed up to: $BACKUP"
+fi
+install -m 0644 "$SOURCE_FILE" "$TARGET"
+
+efibootmgr --create --disk "$DISK" --part "$PART" --label "CarsonBoot" --loader "$LOADER"
+
+NEW_ID="$(efibootmgr -v | awk '/^Boot[0-9A-Fa-f]{4}[* ]+CarsonBoot([[:space:]]|$)/ {print substr($1,5,4); exit}')"
+if [[ ! "$NEW_ID" =~ ^[0-9A-Fa-f]{4}$ ]]; then
+    echo "The entry was created, but its ID could not be identified." >&2
+    echo "Inspect 'sudo efibootmgr -v' and set BootOrder manually if needed." >&2
+    exit 1
+fi
+
+REST="$(printf '%s' "$OLD_ORDER" | tr ',' '\n' | grep -vi "^$NEW_ID$" | paste -sd, - || true)"
+if [[ -n "$REST" ]]; then
+    efibootmgr --bootorder "$NEW_ID,$REST"
+else
+    efibootmgr --bootorder "$NEW_ID"
+fi
+
+echo
+echo "CarsonBoot is now first in UEFI BootOrder."
+echo "Previous boot entries were retained. To undo, use 'sudo efibootmgr -v'"
+echo "and restore the previous BootOrder: ${OLD_ORDER:-not recorded}."
+echo "If CarsonBoot cannot start an OS, use your firmware boot menu to select"
+echo "the original Windows Boot Manager or GRUB entry."
