@@ -48,6 +48,7 @@ FS_TYPE="$(findmnt -n -o FSTYPE --target "$ESP_MOUNT")"
 }
 
 command -v efibootmgr >/dev/null || { echo "Install efibootmgr first." >&2; exit 1; }
+command -v lsblk >/dev/null || { echo "Install util-linux (lsblk) first." >&2; exit 1; }
 SOURCE_FILE="/usr/lib/carsonboot/BOOTX64.EFI"
 [[ -s "$SOURCE_FILE" ]] || { echo "CarsonBoot EFI executable not found: $SOURCE_FILE" >&2; exit 1; }
 [[ -d /sys/firmware/efi ]] || { echo "This Linux session was not booted in UEFI mode." >&2; exit 1; }
@@ -56,8 +57,20 @@ SOURCE_FILE="/usr/lib/carsonboot/BOOTX64.EFI"
 EFI_DIR="$ESP_MOUNT/EFI/CarsonBoot"
 TARGET="$EFI_DIR/BOOTX64.EFI"
 LOADER='\\EFI\\CarsonBoot\\BOOTX64.EFI'
+ESP_SOURCE="$(findmnt -n -o SOURCE --target "$ESP_MOUNT")"
+[[ -b "$ESP_SOURCE" ]] || { echo "Could not resolve the mounted ESP to a block partition: $ESP_SOURCE" >&2; exit 1; }
+ESP_PARENT="$(lsblk -n -o PKNAME "$ESP_SOURCE" | tr -d ' ')"
+ESP_PART_NO="$(lsblk -n -o PARTN "$ESP_SOURCE" | tr -d ' ')"
+[[ "$ESP_PARENT" == "$(basename "$DISK")" && "$ESP_PART_NO" == "$PART" ]] || {
+    echo "The mounted ESP does not match the supplied disk/partition." >&2
+    echo "Mounted ESP: $ESP_SOURCE (parent=$ESP_PARENT partition=$ESP_PART_NO)" >&2
+    echo "Supplied: $DISK partition $PART" >&2
+    exit 1
+}
+
 CURRENT="$(efibootmgr)"
 OLD_ORDER="$(awk '/^BootOrder:/ {print $2; exit}' <<<"$CURRENT")"
+EXISTING_ID="$(awk '/^Boot[0-9A-Fa-f]{4}[* ]+CarsonBoot([[:space:]]|$)/ {print substr($1,5,4); exit}' <<<"$CURRENT")"
 
 if [[ -e "$TARGET" ]]; then
     echo "An existing CarsonBoot file will be backed up before replacement:"
@@ -86,11 +99,15 @@ if [[ -e "$TARGET" ]]; then
 fi
 install -m 0644 "$SOURCE_FILE" "$TARGET"
 
-efibootmgr --create --disk "$DISK" --part "$PART" --label "CarsonBoot" --loader "$LOADER"
-
-NEW_ID="$(efibootmgr -v | awk '/^Boot[0-9A-Fa-f]{4}[* ]+CarsonBoot([[:space:]]|$)/ {print substr($1,5,4); exit}')"
+if [[ "$EXISTING_ID" =~ ^[0-9A-Fa-f]{4}$ ]]; then
+    NEW_ID="$EXISTING_ID"
+    echo "Reusing existing CarsonBoot firmware entry: Boot$NEW_ID"
+else
+    efibootmgr --create --disk "$DISK" --part "$PART" --label "CarsonBoot" --loader "$LOADER"
+    NEW_ID="$(efibootmgr -v | awk '/^Boot[0-9A-Fa-f]{4}[* ]+CarsonBoot([[:space:]]|$)/ {print substr($1,5,4); exit}')"
+fi
 if [[ ! "$NEW_ID" =~ ^[0-9A-Fa-f]{4}$ ]]; then
-    echo "The entry was created, but its ID could not be identified." >&2
+    echo "The firmware entry could not be identified." >&2
     echo "Inspect 'sudo efibootmgr -v' and set BootOrder manually if needed." >&2
     exit 1
 fi
