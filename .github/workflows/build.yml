@@ -36,11 +36,22 @@ jobs:
         run: |
           dpkg-deb --info build/deb/carsonboot_0.1.0_amd64.deb
           dpkg-deb --contents build/deb/carsonboot_0.1.0_amd64.deb
+          echo "## Debian package" >> "$GITHUB_STEP_SUMMARY"
+          echo ' `carsonboot_0.1.0_amd64.deb` was built successfully.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download it from the **CarsonBoot-Debian-Package** artifact below.' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload build artifacts
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: CarsonBoot-x86_64
-          path: |
-            build/BOOTX64.EFI
-            build/deb/*.deb
+          name: CarsonBoot-Debian-Package
+          path: build/deb/carsonboot_0.1.0_amd64.deb
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload UEFI executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarsonBoot-UEFI
+          path: build/BOOTX64.EFI
+          if-no-files-found: error
+          compression-level: 0
