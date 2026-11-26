@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-uefi:
@@ -55,3 +55,13 @@ jobs:
           path: build/BOOTX64.EFI
           if-no-files-found: error
           compression-level: 0
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CarsonBoot ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            build/deb/carsonboot_0.1.0_amd64.deb
+            build/BOOTX64.EFI
