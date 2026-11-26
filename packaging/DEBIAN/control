@@ -4,8 +4,9 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Maintainer: Carson <carson@example.invalid>
+Depends: efibootmgr, util-linux
 Description: Experimental x86_64 UEFI boot manager
- CarsonBoot is an experimental UEFI diagnostic application written in C
- and GNU Assembly. This package installs the EFI executable under
- /usr/lib/carsonboot. It does not modify an EFI System Partition or
- configure firmware boot entries.
+ CarsonBoot reads active UEFI firmware boot entries and can chainload EFI
+ applications. The package includes an explicit, opt-in installer helper.
+ Installing this package does not change the EFI System Partition or firmware
+ boot order; the helper requires a separate --apply confirmation.
