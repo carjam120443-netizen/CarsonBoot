@@ -38,7 +38,7 @@ $(BUILD_DIR)/BOOTX64.EFI: $(BUILD_DIR)/carsonboot.so
 	$(OBJCOPY) \
 		-j .text -j .sdata -j .data -j .dynamic \
 		-j .dynsym -j .rel -j .rela -j .reloc \
-		--target=efi-app-$(ARCH) $< $@
+		-O efi-app-$(ARCH) $< $@
 
 check-deps:
 	@test -f "$(EFI_CRT)" || (echo "Missing GNU-EFI CRT object: $(EFI_CRT)"; exit 1)
