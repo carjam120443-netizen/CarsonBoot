@@ -14,10 +14,11 @@ if [[ ! -f "$ROOT_DIR/build/BOOTX64.EFI" ]]; then
 fi
 
 rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/DEBIAN" "$STAGE_DIR/usr/lib/carsonboot" "$OUTPUT_DIR"
+mkdir -p "$STAGE_DIR/DEBIAN" "$STAGE_DIR/usr/lib/carsonboot" "$STAGE_DIR/usr/sbin" "$OUTPUT_DIR"
 
 install -m 0644 "$ROOT_DIR/build/BOOTX64.EFI" "$STAGE_DIR/usr/lib/carsonboot/BOOTX64.EFI"
 install -m 0644 "$ROOT_DIR/packaging/DEBIAN/control" "$STAGE_DIR/DEBIAN/control"
+install -m 0755 "$ROOT_DIR/packaging/usr/sbin/carsonboot-install-uefi" "$STAGE_DIR/usr/sbin/carsonboot-install-uefi"
 
 sed -i "s/^Version: .*/Version: $VERSION/" "$STAGE_DIR/DEBIAN/control"
 sed -i "s/^Architecture: .*/Architecture: $ARCH/" "$STAGE_DIR/DEBIAN/control"
