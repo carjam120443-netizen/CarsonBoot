@@ -29,9 +29,9 @@ static void cb_print_cpu_vendor(void) {
     vendor[9] = (CHAR16)((result.ecx >> 8) & 0xff);
     vendor[10] = (CHAR16)((result.ecx >> 16) & 0xff);
     vendor[11] = (CHAR16)((result.ecx >> 24) & 0xff);
-    vendor[12] = L'\\0';
+    vendor[12] = L'\0';
 
-    Print(L"CPU vendor: %s\\r\\n", vendor);
+    Print(L"CPU vendor: %s\r\n", vendor);
 }
 
 static void cb_wait_for_key(void) {
@@ -39,7 +39,7 @@ static void cb_wait_for_key(void) {
     EFI_INPUT_KEY key;
     UINTN event_index = 0;
 
-    Print(L"Press any key to return to the firmware...\\r\\n");
+    Print(L"Press any key to return to the firmware...\r\n");
 
     status = uefi_call_wrapper(
         ST->BootServices->WaitForEvent,
@@ -59,18 +59,18 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_tab
 
     (void)uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
-    Print(L"========================================\\r\\n");
-    Print(L"             CarsonBoot                 \\r\\n");
-    Print(L"       x86_64 UEFI development build    \\r\\n");
-    Print(L"========================================\\r\\n\\r\\n");
+    Print(L"========================================\r\n");
+    Print(L"             CarsonBoot                 \r\n");
+    Print(L"       x86_64 UEFI development build    \r\n");
+    Print(L"========================================\r\n\r\n");
 
-    Print(L"[OK] UEFI application entry reached\\r\\n");
-    Print(L"[OK] C runtime initialized\\r\\n");
-    Print(L"[OK] x86_64 assembly routine linked\\r\\n");
+    Print(L"[OK] UEFI application entry reached\r\n");
+    Print(L"[OK] C runtime initialized\r\n");
+    Print(L"[OK] x86_64 assembly routine linked\r\n");
     cb_print_cpu_vendor();
 
-    Print(L"\\r\\nCurrent milestone: UEFI diagnostics\\r\\n");
-    Print(L"Linux kernel loading is not implemented yet.\\r\\n\\r\\n");
+    Print(L"\r\nCurrent milestone: UEFI diagnostics\r\n");
+    Print(L"Linux kernel loading is not implemented yet.\r\n\r\n");
 
     cb_wait_for_key();
     return EFI_SUCCESS;
