@@ -20,7 +20,7 @@ OBJECTS := $(BUILD_DIR)/boot.o $(BUILD_DIR)/cpuid.o
 
 .PHONY: all clean check-deps
 
-all: $(BUILD_DIR)/BOOTX64.EFI
+all: check-deps $(BUILD_DIR)/BOOTX64.EFI
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
