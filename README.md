@@ -2,7 +2,7 @@
 
 CarsonBoot is an experimental x86_64 UEFI boot manager written in C and GNU Assembly.
 
-> **Experimental software:** CarsonBoot reads UEFI Boot#### entries and attempts to chainload selected EFI applications. Firmware behavior varies. Keep a known-good firmware boot option available and test in a virtual machine first.
+> **Experimental software:** CarsonBoot reads UEFI Boot#### entries and attempts to chainload selected EFI applications. Firmware behavior varies. Keep a known-good firmware boot option available and test in a virtual machine first. The current build is unsigned; Secure Boot may refuse to launch it unless it is signed with a key trusted by the firmware.
 
 ## Current features
 
