@@ -56,7 +56,7 @@ SOURCE_FILE="/usr/lib/carsonboot/BOOTX64.EFI"
 
 EFI_DIR="$ESP_MOUNT/EFI/CarsonBoot"
 TARGET="$EFI_DIR/BOOTX64.EFI"
-LOADER='\\EFI\\CarsonBoot\\BOOTX64.EFI'
+LOADER='\EFI\CarsonBoot\BOOTX64.EFI'
 ESP_SOURCE="$(findmnt -n -o SOURCE --target "$ESP_MOUNT")"
 [[ -b "$ESP_SOURCE" ]] || { echo "Could not resolve the mounted ESP to a block partition: $ESP_SOURCE" >&2; exit 1; }
 ESP_PARENT="$(lsblk -n -o PKNAME "$ESP_SOURCE" | tr -d ' ')"
