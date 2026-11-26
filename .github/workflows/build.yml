@@ -3,9 +3,13 @@ name: Build CarsonBoot
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-uefi:
@@ -14,10 +18,10 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install GNU-EFI toolchain
+      - name: Install GNU-EFI toolchain and Debian packaging tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential binutils gnu-efi
+          sudo apt-get install -y build-essential binutils gnu-efi dpkg-dev
 
       - name: Build UEFI application
         run: make
@@ -25,8 +29,18 @@ jobs:
       - name: Verify EFI binary
         run: file build/BOOTX64.EFI
 
-      - name: Upload EFI artifact
+      - name: Build Debian package
+        run: bash packaging/build-deb.sh
+
+      - name: Inspect Debian package
+        run: |
+          dpkg-deb --info build/deb/carsonboot_0.1.0_amd64.deb
+          dpkg-deb --contents build/deb/carsonboot_0.1.0_amd64.deb
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: CarsonBoot-UEFI-x86_64
-          path: build/BOOTX64.EFI
+          name: CarsonBoot-x86_64
+          path: |
+            build/BOOTX64.EFI
+            build/deb/*.deb
