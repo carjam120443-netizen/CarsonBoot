@@ -50,4 +50,4 @@ Do not install this prototype to a physical machine's EFI System Partition. It i
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+GPL-3.0-only. See [LICENSE](LICENSE).
